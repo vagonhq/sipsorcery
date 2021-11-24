@@ -133,7 +133,7 @@ namespace SIPSorcery.Net
     /// </remarks>
     public class RTPSession : IMediaSession, IDisposable
     {
-        private const int RTP_MAX_PAYLOAD = 1400;
+        public int RTP_MAX_PAYLOAD { get; set; } = 1400;
 
         /// <summary>
         /// From libsrtp: SRTP_MAX_TRAILER_LEN is the maximum length of the SRTP trailer
@@ -378,6 +378,10 @@ namespace SIPSorcery.Net
         /// take when n RTCP BYE is received.
         /// </summary>
         public event Action<string> OnRtcpBye;
+
+
+
+        public event Action OnFullIntraRequest;
 
         /// <summary>
         /// Fires when the connection for a media type is classified as timed out due to not
@@ -2149,6 +2153,11 @@ namespace SIPSorcery.Net
                                 //VideoControlDestinationEndPoint = null;
                                 VideoRemoteTrack.Ssrc = 0;
                             }
+                        }
+                        else if (rtcpPkt.FIR != null)
+                        {
+                            logger.LogDebug($"RTCP FIR received for SSRC {rtcpPkt.FIR.SSRC}");
+                            OnFullIntraRequest?.Invoke();
                         }
                         else if (!IsClosed)
                         {
