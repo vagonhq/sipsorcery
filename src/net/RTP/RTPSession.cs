@@ -2161,7 +2161,7 @@ namespace SIPSorcery.Net
                             logger.LogDebug($"RTCP FIR received for SSRC {rtcpPkt.FIR.SSRC}");
                             OnFullIntraRequest?.Invoke();
                         }
-                        else if(rtcpPkt.PSFB != null)
+                        else if(rtcpPkt.PLI != null)
                         {
                             logger.LogDebug($"RTCP PSFB received");
                             OnPictureLossIndication?.Invoke();
