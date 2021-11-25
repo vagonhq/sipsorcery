@@ -383,6 +383,8 @@ namespace SIPSorcery.Net
 
         public event Action OnFullIntraRequest;
 
+        public event Action OnPictureLossIndication;
+
         /// <summary>
         /// Fires when the connection for a media type is classified as timed out due to not
         /// receiving any RTP or RTCP packets within the given period.
@@ -2158,6 +2160,11 @@ namespace SIPSorcery.Net
                         {
                             logger.LogDebug($"RTCP FIR received for SSRC {rtcpPkt.FIR.SSRC}");
                             OnFullIntraRequest?.Invoke();
+                        }
+                        else if(rtcpPkt.PSFB != null)
+                        {
+                            logger.LogDebug($"RTCP PSFB received");
+                            OnPictureLossIndication?.Invoke();
                         }
                         else if (!IsClosed)
                         {
