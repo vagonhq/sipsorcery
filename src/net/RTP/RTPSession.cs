@@ -2766,7 +2766,7 @@ namespace SIPSorcery.Net
                         var packet = videoChannelRTPPacketBuffer.First(x => x.Header.SequenceNumber == seq + i + 1);
                         var videoChannel = GetRtpChannel(SDPMediaTypesEnum.video);
 
-                        SendRtpPacket(videoChannel, VideoDestinationEndPoint, packet.Payload, packet.Header.Timestamp, packet.Header.MarkerBit, 98, VideoLocalTrack.Ssrc, packet.Header.SequenceNumber, VideoRtcpSession);
+                        SendRtpPacket(videoChannel, VideoDestinationEndPoint, packet.Payload, packet.Header.Timestamp, packet.Header.MarkerBit, NACKPayloadType, VideoLocalTrack.Ssrc, packet.Header.SequenceNumber, VideoRtcpSession);
                     }
                 }
             }
