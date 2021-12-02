@@ -40,6 +40,7 @@ namespace SIPSorcery.Net
         public RTCPHeader PLI { get; private set; }
         public RTCPBye Bye { get; set; }
         public RTCPFIR FIR { get; private set; }
+        public RTCPFeedback NACK { get; private set; }
 
         public RTCPCompoundPacket(RTCPSenderReport senderReport, RTCPSDesReport sdesReport)
         {
@@ -99,6 +100,10 @@ namespace SIPSorcery.Net
                             // TODO: Interpret Generic RTP feedback reports.
                             var rtpfbHeader = new RTCPHeader(buffer);
                             offset += rtpfbHeader.Length * 4 + 4;
+                            if(rtpfbHeader.FeedbackMessageType == RTCPFeedbackTypesEnum.NACK)
+                            {
+                                NACK = new RTCPFeedback(buffer);
+                            }
                             break;
                         case (byte)RTCPReportTypesEnum.PSFB:
                             // TODO: Interpret Payload specific feedback reports.

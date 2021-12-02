@@ -160,6 +160,8 @@ namespace SIPSorcery.Net
         private const ushort SCTP_DEFAULT_PORT = 5000;
         private const string UNKNOWN_DATACHANNEL_ERROR = "unknown";
         private const string RTCP_FIR = "a=rtcp-fb:* ccm fir";    // Indicates the media announcement is using multiplexed RTCP.
+        private const string RTP_MAP_RETRANSMIT = "a=rtpmap:{0} rtx/90000";
+        private const string FMTP_RETRANSMIT = "a=fmtp:{0} apt={1};rtx-time=200";
 
         /// <summary>
         /// The period to wait for the SCTP association to complete before giving up.
@@ -1110,6 +1112,8 @@ namespace SIPSorcery.Net
                     if (FIREnabled)
                     {
                         announcement.AddExtra(RTCP_FIR);
+                        announcement.AddExtra(string.Format(RTP_MAP_RETRANSMIT, NACKPayloadType));
+                        announcement.AddExtra(String.Format(FMTP_RETRANSMIT, NACKPayloadType, videoCapabilities[0].ID));
                     }
 
 

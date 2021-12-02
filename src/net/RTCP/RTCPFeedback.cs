@@ -149,7 +149,22 @@ namespace SIPSorcery.Net
                 MediaSSRC = BitConverter.ToUInt32(packet, 8);
             }
 
+
             // TODO: Depending on the report type additional parameters will need to be deserialised.
+            if (Header.FeedbackMessageType == RTCPFeedbackTypesEnum.NACK)
+            {
+                int payloadIndex = RTCPHeader.HEADER_BYTES_LENGTH;
+                if (BitConverter.IsLittleEndian)
+                {
+                    PID = NetConvert.DoReverseEndian(BitConverter.ToUInt16(packet, payloadIndex + 6));
+                    BLP = NetConvert.DoReverseEndian(BitConverter.ToUInt16(packet, payloadIndex + 8));
+                }
+                else
+                {
+                    SenderSSRC = BitConverter.ToUInt16(packet, payloadIndex + 6);
+                    MediaSSRC = BitConverter.ToUInt16(packet, payloadIndex + 8);
+                }
+            }     
         }
 
         public byte[] GetBytes()

@@ -19,6 +19,7 @@
 //-----------------------------------------------------------------------------
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -187,6 +188,8 @@ namespace SIPSorcery.Net
         internal Dictionary<SDPMediaTypesEnum, RTPChannel> m_rtpChannels = new Dictionary<SDPMediaTypesEnum, RTPChannel>();
 
         private SrtpHandler m_srtpHandler = null;
+        private List<RTPPacket> videoChannelRTPPacketBuffer = new List<RTPPacket>();
+        public int NACKPayloadType { get; set; } = 101;
 
         /// <summary>
         /// Track if current remote description is invalid (used in Renegotiation logic)
@@ -2161,10 +2164,14 @@ namespace SIPSorcery.Net
                             logger.LogDebug($"RTCP FIR received for SSRC {rtcpPkt.FIR.SSRC}");
                             OnFullIntraRequest?.Invoke();
                         }
-                        else if(rtcpPkt.PLI != null)
+                        else if (rtcpPkt.PLI != null)
                         {
                             logger.LogDebug($"RTCP PSFB received");
                             OnPictureLossIndication?.Invoke();
+                        }
+                        else if(rtcpPkt.NACK != null)
+                        {
+                            OnNackRecevied(rtcpPkt.NACK);
                         }
                         else if (!IsClosed)
                         {
@@ -2610,6 +2617,10 @@ namespace SIPSorcery.Net
                 if (m_srtpProtect == null)
                 {
                     rtpChannel.Send(RTPChannelSocketsEnum.RTP, dstRtpSocket, rtpBuffer);
+                    if (ssrc == VideoLocalTrack.Ssrc)
+                    {
+                        PushToBufferVideoChannelPacketBuffer(rtpPacket);
+                    }
                 }
                 else
                 {
@@ -2622,6 +2633,10 @@ namespace SIPSorcery.Net
                     else
                     {
                         rtpChannel.Send(RTPChannelSocketsEnum.RTP, dstRtpSocket, rtpBuffer.Take(outBufLen).ToArray());
+                        if (ssrc == VideoLocalTrack.Ssrc)
+                        {
+                            PushToBufferVideoChannelPacketBuffer(rtpPacket);
+                        }
                     }
                 }
                 m_lastRtpTimestamp = timestamp;
@@ -2723,6 +2738,38 @@ namespace SIPSorcery.Net
         public virtual void Dispose()
         {
             Close("disposed");
+        }
+
+        private void PushToBufferVideoChannelPacketBuffer(RTPPacket packet)
+        {
+            if (videoChannelRTPPacketBuffer.Count < 60)
+            {
+                videoChannelRTPPacketBuffer.Add(packet);
+            }
+            else
+            {
+                videoChannelRTPPacketBuffer.RemoveAt(0);
+                videoChannelRTPPacketBuffer.Add(packet);
+            }
+        }
+
+        private void OnNackRecevied(RTCPFeedback NACK)
+        {
+            if(NACK.SenderSSRC == VideoLocalTrack.Ssrc || NACK.MediaSSRC == VideoLocalTrack.Ssrc)
+            {
+                var seq = NACK.PID;
+                var bitMask = new BitArray(BitConverter.GetBytes(NACK.BLP));
+                for (int i = 0; i < bitMask.Length; i++)
+                {
+                    if (bitMask[i])
+                    {
+                        var packet = videoChannelRTPPacketBuffer.First(x => x.Header.SequenceNumber == seq + i + 1);
+                        var videoChannel = GetRtpChannel(SDPMediaTypesEnum.video);
+
+                        SendRtpPacket(videoChannel, VideoDestinationEndPoint, packet.Payload, packet.Header.Timestamp, packet.Header.MarkerBit, 98, VideoLocalTrack.Ssrc, packet.Header.SequenceNumber, VideoRtcpSession);
+                    }
+                }
+            }
         }
     }
 }
