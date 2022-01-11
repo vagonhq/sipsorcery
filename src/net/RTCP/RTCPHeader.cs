@@ -42,6 +42,7 @@ namespace SIPSorcery.Net
     /// </summary>
     public enum RTCPReportTypesEnum : byte
     {
+        FIR = 192,    // FIR
         SR = 200,     // Send Report.
         RR = 201,     // Receiver Report.
         SDES = 202,   // Session Description.

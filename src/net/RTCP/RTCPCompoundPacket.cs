@@ -37,7 +37,10 @@ namespace SIPSorcery.Net
         public RTCPSenderReport SenderReport { get; private set; }
         public RTCPReceiverReport ReceiverReport { get; private set; }
         public RTCPSDesReport SDesReport { get; private set; }
+        public RTCPHeader PLI { get; private set; }
         public RTCPBye Bye { get; set; }
+        public RTCPFIR FIR { get; private set; }
+        public RTCPFeedback NACK { get; private set; }
 
         public RTCPCompoundPacket(RTCPSenderReport senderReport, RTCPSDesReport sdesReport)
         {
@@ -97,11 +100,24 @@ namespace SIPSorcery.Net
                             // TODO: Interpret Generic RTP feedback reports.
                             var rtpfbHeader = new RTCPHeader(buffer);
                             offset += rtpfbHeader.Length * 4 + 4;
+                            if(rtpfbHeader.FeedbackMessageType == RTCPFeedbackTypesEnum.NACK)
+                            {
+                                NACK = new RTCPFeedback(buffer);
+                            }
                             break;
                         case (byte)RTCPReportTypesEnum.PSFB:
                             // TODO: Interpret Payload specific feedback reports.
                             var psfbHeader = new RTCPHeader(buffer);
                             offset += psfbHeader.Length * 4 + 4;
+                            if(psfbHeader.PayloadFeedbackMessageType == PSFBFeedbackTypesEnum.PLI)
+                            {
+                                PLI = psfbHeader;
+                            }
+                            break;
+                        case (byte)RTCPReportTypesEnum.FIR:
+                            FIR = new RTCPFIR(buffer);
+                            int FIRLength = (FIR != null) ? FIR.GetBytes().Length : Int32.MaxValue;
+                            offset += FIRLength;
                             break;
                         default:
                             logger.LogWarning($"RTCPCompoundPacket did not recognise packet type ID {packetTypeID}.");

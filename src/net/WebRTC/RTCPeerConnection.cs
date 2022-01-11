@@ -159,6 +159,9 @@ namespace SIPSorcery.Net
         private const string NORMAL_CLOSE_REASON = "normal";
         private const ushort SCTP_DEFAULT_PORT = 5000;
         private const string UNKNOWN_DATACHANNEL_ERROR = "unknown";
+        private const string RTCP_FIR = "a=rtcp-fb:* ccm fir";    // Indicates the media announcement is using multiplexed RTCP.
+        private const string RTP_MAP_RETRANSMIT = "a=rtpmap:{0} rtx/90000";
+        private const string FMTP_RETRANSMIT = "a=fmtp:{0} apt={1};rtx-time=200";
 
         /// <summary>
         /// The period to wait for the SCTP association to complete before giving up.
@@ -176,6 +179,7 @@ namespace SIPSorcery.Net
         public string SessionID { get; private set; }
         public string SdpSessionID { get; private set; }
         public string LocalSdpSessionID { get; private set; }
+        public bool FIREnabled { get; set; }
 
         private RtpIceChannel _rtpIceChannel;
 
@@ -379,12 +383,15 @@ namespace SIPSorcery.Net
             this(null)
         { }
 
+
         /// <summary>
         /// Constructor to create a new RTC peer connection instance.
         /// </summary>
         /// <param name="configuration">Optional.</param>
-        public RTCPeerConnection(RTCConfiguration configuration, int bindPort = 0) :
-            base(true, true, true, configuration?.X_BindAddress, bindPort)
+        /// <param name="bindPort">Optional. Default = 0</param>
+        /// <param name="isSecure">Optional. Default = true</param>
+        public RTCPeerConnection(RTCConfiguration configuration, int bindPort = 0, bool isSecure = true) :
+            base(true, true, isSecure, configuration?.X_BindAddress, bindPort)
         {
             if (_configuration != null &&
                _configuration.iceTransportPolicy == RTCIceTransportPolicy.relay &&
@@ -472,7 +479,7 @@ namespace SIPSorcery.Net
 
             OnRtpClosed += Close;
             OnRtcpBye += Close;
-            
+
             //Cancel Negotiation Task Event to Prevent Duplicated Calls
             onnegotiationneeded += CancelOnNegotiationNeededTask;
 
@@ -1102,6 +1109,13 @@ namespace SIPSorcery.Net
                     announcement.IceOptions = ICE_OPTIONS;
                     announcement.IceRole = IceRole;
                     announcement.DtlsFingerprint = dtlsFingerprint;
+                    if (FIREnabled)
+                    {
+                        announcement.AddExtra(RTCP_FIR);
+                        announcement.AddExtra(string.Format(RTP_MAP_RETRANSMIT, NACKPayloadType));
+                        announcement.AddExtra(String.Format(FMTP_RETRANSMIT, NACKPayloadType, videoCapabilities[0].ID));
+                    }
+
 
                     if (iceCandidatesAdded == false && !excludeIceCandidates)
                     {
